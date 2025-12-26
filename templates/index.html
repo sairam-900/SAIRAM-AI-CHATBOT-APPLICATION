@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sairam AI | Personal Assistant</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --sidebar-width: 300px;
+            --bg-dark: #050505;
+            --bg-sidebar: #0f0f12;
+            --bg-input: #18181b;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.2);
+            --text-main: #fafafa;
+            --text-muted: #a1a1aa;
+            --border: rgba(255, 255, 255, 0.08);
+            --glass: rgba(255, 255, 255, 0.03);
+        }
+
+        /* --- LIGHT MODE COLORS --- */
+        body.light-mode {
+            --bg-dark: #f4f4f5;
+            --bg-sidebar: #ffffff;
+            --bg-input: #ffffff;
+            --text-main: #18181b;
+            --text-muted: #71717a;
+            --border: rgba(0, 0, 0, 0.1);
+            --glass: rgba(0, 0, 0, 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; transition: background 0.3s; }
+
+        /* --- SIDEBAR --- */
+        #sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+
+        #sidebar.hidden { transform: translateX(-100%); position: absolute; height: 100%; }
+
+        .sidebar-header { padding: 24px; }
+        .new-chat-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            border: none;
+            border-radius: 14px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-weight: 700;
+            box-shadow: 0 4px 20px var(--accent-glow);
+            transition: all 0.3s ease;
+        }
+        .new-chat-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+
+        .chat-history { flex: 1; overflow-y: auto; padding: 15px; }
+        .history-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin: 20px 0 10px 10px; font-weight: 800; }
+        
+        .history-item {
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .history-item:hover, .history-item.active { background: var(--glass); color: var(--text-main); border: 1px solid var(--border); }
+
+        /* --- MAIN CHAT AREA --- */
+        main { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); position: relative; transition: margin-left 0.3s; }
+        
+        #chat-header {
+            padding: 20px 40px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(20px);
+            background: var(--bg-dark);
+            opacity: 0.9;
+        }
+
+        #chat-window {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px 5%;
+            scroll-behavior: smooth;
+        }
+
+        /* MESSAGE STYLING */
+        .message-row { display: flex; gap: 24px; margin-bottom: 40px; max-width: 1000px; margin-left: auto; margin-right: auto; animation: slideUp 0.4s ease forwards; }
+        .avatar { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: bold; font-size: 1.2rem; }
+        .ai-avatar { background: linear-gradient(135deg, #6366f1, #a855f7); color: white; }
+        .user-avatar { background: #27272a; color: white; border: 1px solid var(--border); }
+
+        .msg-content { flex: 1; line-height: 1.8; font-size: 1.05rem; color: var(--text-main); }
+        
+        /* CLEAN TEXT FORMATTING */
+        .msg-content p { margin-bottom: 15px; }
+        .msg-content ul, .msg-content ol { margin-left: 25px; margin-bottom: 15px; }
+
+        pre { background: #000; padding: 20px; border-radius: 16px; margin: 20px 0; position: relative; border: 1px solid var(--border); overflow-x: auto; }
+        code { font-family: 'Fira Code', monospace; color: #818cf8; font-size: 0.95rem; }
+
+        /* --- INPUT AREA --- */
+        #input-wrapper { padding: 0 5% 40px 5%; }
+        .input-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--bg-input);
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            padding: 12px 18px;
+            display: flex;
+            align-items: flex-end;
+            gap: 15px;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.1);
+        }
+
+        textarea { flex: 1; background: transparent; border: none; outline: none; color: var(--text-main); resize: none; max-height: 200px; padding: 8px 0; font-size: 1.05rem; }
+        .send-btn { background: var(--accent); color: white; border: none; width: 44px; height: 44px; border-radius: 14px; cursor: pointer; }
+
+        /* WELCOME SCREEN */
+        #welcome-msg { text-align: center; margin-top: 10vh; }
+        .hero-title { font-size: 4rem; font-weight: 900; background: linear-gradient(to bottom, var(--text-main) 30%, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .toggle-sidebar-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; }
+
+        @media (max-width: 768px) {
+            #sidebar { position: absolute; left: -300px; height: 100%; }
+            #sidebar.open { left: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <button class="new-chat-btn" onclick="startNewChat()">
+                <i class="fa fa-plus"></i> New Conversation
+            </button>
+        </div>
+        <div class="chat-history">
+            <div class="history-label">Recent History</div>
+            <div id="history-container"></div>
+        </div>
+    </aside>
+
+    <main>
+        <header id="chat-header">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="toggle-sidebar-btn" onclick="toggleSidebar()"><i class="fa fa-bars"></i></button>
+                <strong id="session-title" style="letter-spacing: 1px; font-weight: 800; font-size: 1.1rem;">SAIRAM AI</strong>
+            </div>
+            <div style="display: flex; gap: 20px; color: var(--text-muted); font-size: 1rem; align-items: center;">
+                <i class="fa fa-sun" id="theme-icon" style="cursor: pointer;" onclick="toggleTheme()" title="Toggle Light/Dark"></i>
+                <i class="fa fa-trash-can" style="cursor: pointer;" onclick="clearAllData()" title="Clear Memory"></i>
+            </div>
+        </header>
+
+        <div id="chat-window">
+            <div id="welcome-msg">
+                <div class="avatar ai-avatar" style="width: 80px; height: 80px; margin: 0 auto 30px; font-size: 2.5rem; border-radius: 20px;">S</div>
+                <h1 class="hero-title">Sairam AI</h1>
+                <p style="color: var(--text-muted); font-size: 1.2rem; margin-bottom: 40px;">Advanced Intellect. Precision Responses.</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; max-width: 600px; margin: 0 auto;">
+                    <div class="history-item" style="justify-content: center; padding: 20px; border: 1px solid var(--border);" onclick="quickPrompt('Draft a business plan')">"Draft a business plan"</div>
+                    <div class="history-item" style="justify-content: center; padding: 20px; border: 1px solid var(--border);" onclick="quickPrompt('Explain Quantum Physics')">"Explain Quantum Physics"</div>
+                </div>
+            </div>
+            <div id="messages-list"></div>
+        </div>
+
+        <div id="input-wrapper">
+            <div class="input-container">
+                <textarea id="user-input" placeholder="Message Sairam AI..." rows="1"></textarea>
+                <button class="send-btn" onclick="handleInput()">
+                    <i class="fa fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let activeChatId = null;
+        let db = JSON.parse(localStorage.getItem('sairam_db')) || { chats: [], theme: 'dark' };
+
+        const input = document.getElementById('user-input');
+        const list = document.getElementById('messages-list');
+        const sidebar = document.getElementById('sidebar');
+
+        function init() {
+            if (db.theme === 'light') document.body.classList.add('light-mode');
+            renderHistory();
+            input.addEventListener('input', () => {
+                input.style.height = 'auto';
+                input.style.height = input.scrollHeight + 'px';
+            });
+        }
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('hidden');
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            db.theme = document.body.classList.contains('light-mode') ? 'light' : 'dark';
+            localStorage.setItem('sairam_db', JSON.stringify(db));
+        }
+
+        async function handleInput() {
+            const text = input.value.trim();
+            if(!text) return;
+
+            if(!activeChatId) startNewChat(text.substring(0, 25));
+            
+            appendMessage('user', text);
+            input.value = '';
+            input.style.height = 'auto';
+            document.getElementById('welcome-msg').style.display = 'none';
+
+            const typingId = "typing-" + Date.now();
+            appendTypingIndicator(typingId);
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+
+                const data = await response.json();
+                document.getElementById(typingId).remove();
+                
+                // CLEANING LOGIC: Remove *** and handle basic points
+                let cleanReply = data.reply
+                    .replace(/\*\*\*/g, '') // Remove triple stars
+                    .replace(/\*\*/g, '');  // Remove double stars (bold)
+
+                appendMessage('ai', cleanReply);
+                saveToDB(text, cleanReply);
+
+            } catch (error) {
+                document.getElementById(typingId).remove();
+                appendMessage('ai', "Connectivity lost. Ensure your local server is running.");
+            }
+        }
+
+        function appendMessage(sender, text) {
+            const row = document.createElement('div');
+            row.className = 'message-row';
+            
+            // Convert simple markdown-like syntax to HTML paragraphs and lists
+            let htmlContent = text
+                .split('\n\n').map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')
+                .replace(/^- (.*)/gm, '<li>$1</li>')
+                .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+
+            row.innerHTML = `
+                <div class="avatar ${sender}-avatar">${sender === 'ai' ? 'S' : 'U'}</div>
+                <div class="msg-content">
+                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 5px; font-weight: 700;">
+                        ${sender === 'ai' ? 'SAIRAM AI' : 'YOU'}
+                    </div>
+                    ${htmlContent}
+                </div>
+            `;
+            list.appendChild(row);
+            document.getElementById('chat-window').scrollTop = document.getElementById('chat-window').scrollHeight;
+        }
+
+        function startNewChat(title = "New Conversation") {
+            activeChatId = Date.now().toString();
+            db.chats.unshift({ id: activeChatId, title: title, messages: [] });
+            list.innerHTML = '';
+            document.getElementById('welcome-msg').style.display = 'block';
+            document.getElementById('session-title').innerText = title.toUpperCase();
+            saveDB();
+            renderHistory();
+        }
+
+        function saveToDB(uMsg, aMsg) {
+            let chat = db.chats.find(c => c.id === activeChatId);
+            if (chat) {
+                chat.messages.push({ sender: 'user', text: uMsg }, { sender: 'ai', text: aMsg });
+                saveDB();
+            }
+        }
+
+        function loadChat(id) {
+            activeChatId = id;
+            const chat = db.chats.find(c => c.id === id);
+            list.innerHTML = '';
+            document.getElementById('welcome-msg').style.display = 'none';
+            document.getElementById('session-title').innerText = chat.title.toUpperCase();
+            chat.messages.forEach(m => appendMessage(m.sender, m.text));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('history-container');
+            container.innerHTML = db.chats.map(chat => `
+                <div class="history-item ${chat.id === activeChatId ? 'active' : ''}" onclick="loadChat('${chat.id}')">
+                    <i class="fa-regular fa-message"></i> ${chat.title}
+                </div>
+            `).join('');
+        }
+
+        function appendTypingIndicator(id) {
+            const row = document.createElement('div');
+            row.className = 'message-row';
+            row.id = id;
+            row.innerHTML = `<div class="avatar ai-avatar">S</div><div class="msg-content"><div class="typing-dots">Thinking...</div></div>`;
+            list.appendChild(row);
+        }
+
+        function saveDB() { localStorage.setItem('sairam_db', JSON.stringify(db)); }
+        function quickPrompt(t) { input.value = t; handleInput(); }
+        function clearAllData() { if(confirm("Clear history?")) { localStorage.clear(); location.reload(); } }
+
+        init();
+    </script>
+</body>
+</html>
