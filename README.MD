@@ -49,7 +49,7 @@ Place index.html inside the templates folder.
 
 Access Application
 
-Open: http://127.0.0.1:5000
+Open: http://127.0.0.1:8080/
 
 
 Author : NAKKA LEELA LAKSHMI SAI RAM
