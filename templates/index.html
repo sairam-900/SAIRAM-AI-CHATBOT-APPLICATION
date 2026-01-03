@@ -141,8 +141,14 @@
 
         /* WELCOME SCREEN */
         #welcome-msg { text-align: center; margin-top: 10vh; }
-        .hero-title { font-size: 4rem; font-weight: 900; background: linear-gradient(to bottom, var(--text-main) 30%, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
+        .hero-title {
+  font-size: 4rem;
+  font-weight: 900;
+  background: linear-gradient(to bottom, #4f46e5, #9333ea);
+  -webkit-background-clip: text; /* Chrome, Safari */
+  background-clip: text;         /* Standard */
+  -webkit-text-fill-color: transparent;
+}
         .toggle-sidebar-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; }
 
         @media (max-width: 768px) {
